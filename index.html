@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Modal Popup System</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f5f0e8;
+  --bg2: #ede8de;
+  --ink: #1a1612;
+  --ink2: #4a4540;
+  --muted: #9a9490;
+  --cream: #faf7f2;
+  --gold: #c8923a;
+  --gold-light: #f0c876;
+  --red: #c0392b;
+  --green: #2c7a4b;
+  --border: rgba(26,22,18,0.12);
+  --shadow: rgba(26,22,18,0.15);
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  position: relative;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(200,146,58,0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 80% at 80% 90%, rgba(44,122,75,0.06) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.corner {
+  position: fixed;
+  width: 80px; height: 80px;
+  opacity: 0.2;
+  pointer-events: none;
+}
+.corner-tl { top: 24px; left: 24px; border-top: 1.5px solid var(--ink); border-left: 1.5px solid var(--ink); }
+.corner-tr { top: 24px; right: 24px; border-top: 1.5px solid var(--ink); border-right: 1.5px solid var(--ink); }
+.corner-bl { bottom: 24px; left: 24px; border-bottom: 1.5px solid var(--ink); border-left: 1.5px solid var(--ink); }
+.corner-br { bottom: 24px; right: 24px; border-bottom: 1.5px solid var(--ink); border-right: 1.5px solid var(--ink); }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(28px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.hero {
+  text-align: center;
+  max-width: 600px;
+  position: relative;
+  z-index: 1;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 1.5rem;
+  animation: fadeUp 0.6s 0.1s ease both;
+}
+.eyebrow::before, .eyebrow::after {
+  content: '';
+  display: block;
+  width: 28px; height: 1px;
+  background: var(--gold);
+}
+
+.hero h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(3rem, 7vw, 5.5rem);
+  font-weight: 900;
+  line-height: 1.0;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.2rem;
+  animation: fadeUp 0.6s 0.2s ease both;
+}
+.hero h1 em { font-style: italic; color: var(--gold); }
+
+.hero-sub {
+  font-size: 0.85rem;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  margin-bottom: 3rem;
+  animation: fadeUp 0.6s 0.3s ease both;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  width: 100%;
+  animation: fadeUp 0.6s 0.4s ease both;
+}
+@media (max-width: 520px) { .card-grid { grid-template-columns: 1fr; } }
+
+.trigger-card {
+  background: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.5rem 1.25rem 1.25rem;
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.22s cubic-bezier(0.34,1.4,0.64,1), box-shadow 0.22s;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 8px var(--shadow), inset 0 1px 0 rgba(255,255,255,0.8);
+}
+.trigger-card::before {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 3px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.trigger-card:hover { transform: translateY(-5px); box-shadow: 0 14px 36px var(--shadow); }
+.trigger-card:hover::before { opacity: 1; }
+.trigger-card:active { transform: translateY(-2px); }
+
+.info-card::before  { background: linear-gradient(90deg, var(--gold), var(--gold-light)); }
+.form-card::before  { background: linear-gradient(90deg, #3b82f6, #6ee7b7); }
+.alert-card::before { background: linear-gradient(90deg, var(--red), #e67e22); }
+
+.card-icon {
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+}
+.info-card  .card-icon { background: rgba(200,146,58,0.12); }
+.form-card  .card-icon { background: rgba(59,130,246,0.1); }
+.alert-card .card-icon { background: rgba(192,57,43,0.1); }
+
+.card-label {
+  font-size: 0.8rem; font-weight: 600;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--ink2); margin-bottom: 0.25rem;
+}
+.card-desc { font-size: 0.75rem; color: var(--muted); line-height: 1.5; }
+.card-arrow {
+  position: absolute; top: 1.25rem; right: 1.25rem;
+  font-size: 1rem; color: var(--muted);
+  transition: transform 0.2s, color 0.2s;
+}
+.trigger-card:hover .card-arrow { transform: translate(2px,-2px); color: var(--ink); }
+
+/* ── OVERLAY ── */
+#modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(26,22,18,0.55);
+  backdrop-filter: blur(8px) saturate(0.8);
+  -webkit-backdrop-filter: blur(8px) saturate(0.8);
+  display: flex; align-items: center; justify-content: center;
+  padding: 1.5rem; z-index: 1000;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+#modal-overlay.active { opacity: 1; pointer-events: all; }
+
+/* ── MODAL BOX ── */
+#modal-box {
+  background: var(--cream);
+  border-radius: 20px;
+  width: 100%; max-width: 490px;
+  position: relative;
+  box-shadow: 0 40px 100px rgba(26,22,18,0.35), 0 0 0 1px rgba(255,255,255,0.7) inset;
+  transform: translateY(24px) scale(0.96);
+  opacity: 0;
+  transition: transform 0.35s cubic-bezier(0.34,1.4,0.64,1), opacity 0.25s ease;
+  overflow: hidden;
+}
+#modal-overlay.active #modal-box { transform: translateY(0) scale(1); opacity: 1; }
+
+#modal-stripe { height: 4px; width: 100%; transition: background 0.3s; }
+
+.modal-inner { padding: 2rem 2rem 1.75rem; }
+
+.modal-header {
+  display: flex; align-items: flex-start;
+  justify-content: space-between; gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.modal-eyebrow {
+  font-size: 0.65rem; font-weight: 600;
+  letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 0.35rem;
+}
+#modal-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.6rem; font-weight: 700;
+  line-height: 1.15; color: var(--ink);
+}
+#modal-close {
+  width: 36px; height: 36px; border-radius: 50%;
+  border: 1.5px solid var(--border);
+  background: transparent; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--muted); font-size: 1.1rem;
+  flex-shrink: 0; margin-top: 2px;
+  transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.2s;
+}
+#modal-close:hover { background: var(--ink); color: var(--cream); border-color: var(--ink); transform: rotate(90deg); }
+
+.modal-divider { height: 1px; background: var(--border); margin: 0 -2rem 1.5rem; }
+
+#modal-content { font-size: 0.875rem; color: var(--ink2); line-height: 1.75; }
+#modal-content p { margin-bottom: 0.75rem; }
+#modal-content p:last-child { margin-bottom: 0; }
+#modal-content strong { color: var(--ink); font-weight: 600; }
+
+.check-list {
+  list-style: none; padding: 0;
+  display: flex; flex-direction: column; gap: 0.5rem; margin: 0.75rem 0;
+}
+.check-list li { display: flex; align-items: center; gap: 0.65rem; font-size: 0.82rem; color: var(--ink2); }
+.check-list li .icon {
+  width: 20px; height: 20px;
+  background: rgba(44,122,75,0.1); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.65rem; color: var(--green); flex-shrink: 0;
+}
+
+.badge-row { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 1.25rem; }
+.badge {
+  font-size: 0.65rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 0.2rem 0.6rem; border-radius: 100px;
+  background: rgba(200,146,58,0.1); color: var(--gold); border: 1px solid rgba(200,146,58,0.25);
+}
+.badge.blue { background: rgba(59,130,246,0.08); color: #3b82f6; border-color: rgba(59,130,246,0.2); }
+.badge.red  { background: rgba(192,57,43,0.08); color: var(--red); border-color: rgba(192,57,43,0.2); }
+
+.form-group { display: flex; flex-direction: column; gap: 0.85rem; margin-top: 0.5rem; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+@media (max-width: 400px) { .form-row { grid-template-columns: 1fr; } }
+.field { display: flex; flex-direction: column; gap: 0.3rem; }
+.field label { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.field input, .field textarea, .field select {
+  background: var(--bg); border: 1.5px solid var(--border);
+  color: var(--ink); padding: 0.6rem 0.85rem; border-radius: 8px;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.82rem;
+  outline: none; transition: border-color 0.2s, box-shadow 0.2s; -webkit-appearance: none;
+}
+.field input:focus, .field textarea:focus, .field select:focus {
+  border-color: var(--gold); box-shadow: 0 0 0 3px rgba(200,146,58,0.12);
+}
+.field textarea { resize: vertical; min-height: 80px; }
+
+.modal-footer {
+  display: flex; gap: 0.75rem; justify-content: flex-end;
+  margin-top: 1.75rem; padding-top: 1.25rem; border-top: 1px solid var(--border);
+}
+.mbtn {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.78rem; font-weight: 600; letter-spacing: 0.04em;
+  padding: 0.6rem 1.4rem; border-radius: 100px; border: none; cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s; display: inline-flex; align-items: center; gap: 0.4rem;
+}
+.mbtn:active { transform: scale(0.97) !important; }
+.mbtn-ghost { background: transparent; color: var(--muted); border: 1.5px solid var(--border); }
+.mbtn-ghost:hover { color: var(--ink); border-color: rgba(26,22,18,0.3); }
+.mbtn-primary { background: var(--ink); color: var(--cream); box-shadow: 0 4px 14px rgba(26,22,18,0.25); }
+.mbtn-primary:hover { box-shadow: 0 6px 20px rgba(26,22,18,0.35); transform: translateY(-1px); }
+.mbtn-gold { background: linear-gradient(135deg, var(--gold), #e8a94a); color: white; box-shadow: 0 4px 14px rgba(200,146,58,0.35); }
+.mbtn-gold:hover { box-shadow: 0 6px 20px rgba(200,146,58,0.5); transform: translateY(-1px); }
+.mbtn-danger { background: linear-gradient(135deg, var(--red), #e74c3c); color: white; box-shadow: 0 4px 14px rgba(192,57,43,0.3); }
+.mbtn-danger:hover { box-shadow: 0 6px 20px rgba(192,57,43,0.45); transform: translateY(-1px); }
+
+.success-state { text-align: center; padding: 1rem 0; }
+.success-icon {
+  width: 56px; height: 56px;
+  background: rgba(44,122,75,0.1); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.5rem; margin: 0 auto 1rem;
+  animation: popIn 0.4s cubic-bezier(0.34,1.6,0.64,1) both;
+}
+@keyframes popIn { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.success-state h3 { font-family: 'Playfair Display', serif; font-size: 1.1rem; margin-bottom: 0.4rem; }
+.success-state p { font-size: 0.8rem; color: var(--muted); }
+
+.alert-banner {
+  display: flex; align-items: flex-start; gap: 0.75rem;
+  background: rgba(192,57,43,0.06); border: 1px solid rgba(192,57,43,0.15);
+  border-radius: 10px; padding: 0.9rem 1rem; margin-bottom: 1rem;
+}
+.alert-banner .a-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+.alert-banner p { font-size: 0.8rem; color: var(--ink2); line-height: 1.55; }
+
+.credit {
+  position: fixed; bottom: 1rem;
+  font-size: 0.65rem; font-weight: 500;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
+}
+</style>
+</head>
+<body>
+
+<div class="corner corner-tl"></div>
+<div class="corner corner-tr"></div>
+<div class="corner corner-bl"></div>
+<div class="corner corner-br"></div>
+
+<div class="hero">
+  <div class="eyebrow">Microproject &middot; DOM &amp; JS</div>
+  <h1>Modal<br/><em>Popup</em> System</h1>
+  <p class="hero-sub">Vanilla JavaScript &middot; No frameworks &middot; Fully accessible</p>
+
+  <div class="card-grid">
+    <div class="trigger-card info-card" onclick="openModal('info')">
+      <span class="card-arrow">↗</span>
+      <div class="card-icon">📋</div>
+      <div class="card-label">Info</div>
+      <div class="card-desc">System overview &amp; feature list</div>
+    </div>
+    <div class="trigger-card form-card" onclick="openModal('form')">
+      <span class="card-arrow">↗</span>
+      <div class="card-icon">✉️</div>
+      <div class="card-label">Form</div>
+      <div class="card-desc">Contact form with validation</div>
+    </div>
+    <div class="trigger-card alert-card" onclick="openModal('alert')">
+      <span class="card-arrow">↗</span>
+      <div class="card-icon">⚠️</div>
+      <div class="card-label">Alert</div>
+      <div class="card-desc">Confirm destructive action</div>
+    </div>
+  </div>
+</div>
+
+<div id="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div id="modal-box">
+    <div id="modal-stripe"></div>
+    <div class="modal-inner">
+      <div class="modal-header">
+        <div>
+          <div class="modal-eyebrow" id="modal-eyebrow">Information</div>
+          <h2 id="modal-title">Title</h2>
+        </div>
+        <button id="modal-close" aria-label="Close modal">✕</button>
+      </div>
+      <div class="modal-divider"></div>
+      <div id="modal-content"></div>
+      <div class="modal-footer" id="modal-footer"></div>
+    </div>
+  </div>
+</div>
+
+<div class="credit">Kokare Aashay Sunil &middot; Modal Popup System</div>
+
+<script>
+const MODALS = {
+  info: {
+    eyebrow: 'System Overview',
+    title: 'Modal Popup System',
+    stripe: 'linear-gradient(90deg, #c8923a, #f0c876)',
+    content: () => `
+      <p>A lightweight, accessible modal built with <strong>pure vanilla JS</strong>. No libraries, no build tools — just DOM, CSS, and events.</p>
+      <ul class="check-list">
+        <li><span class="icon">✓</span> Open via button trigger — no page reload</li>
+        <li><span class="icon">✓</span> Overlay blocks background interaction</li>
+        <li><span class="icon">✓</span> Close via ✕ button, overlay click, or ESC key</li>
+        <li><span class="icon">✓</span> Dynamic DOM content updates per modal type</li>
+        <li><span class="icon">✓</span> Single instance — no duplicate modals</li>
+        <li><span class="icon">✓</span> Script injection prevention (SV-01)</li>
+      </ul>
+      <div class="badge-row">
+        <span class="badge">TC-01 ✓</span><span class="badge">TC-02 ✓</span>
+        <span class="badge">TC-05 ✓</span><span class="badge">TC-06 ✓</span>
+        <span class="badge">TC-08 ✓</span><span class="badge">VS-01 ✓</span>
+      </div>`,
+    footer: () => `<button class="mbtn mbtn-ghost" onclick="closeModal()">Close</button>
+                   <button class="mbtn mbtn-gold" onclick="closeModal()">Got it ✓</button>`
+  },
+  form: {
+    eyebrow: 'Contact Form',
+    title: 'Send a Message',
+    stripe: 'linear-gradient(90deg, #3b82f6, #6ee7b7)',
+    content: () => `
+      <p>Inputs are sanitized — script tags render as plain text <span style="font-size:0.75rem;color:var(--muted)">(SV-01)</span>.</p>
+      <div class="form-group" style="margin-top:1rem;">
+        <div class="form-row">
+          <div class="field"><label>First Name</label><input id="f-first" type="text" placeholder="Aashay"/></div>
+          <div class="field"><label>Last Name</label><input id="f-last" type="text" placeholder="Kokare"/></div>
+        </div>
+        <div class="field"><label>Email Address</label><input id="f-email" type="email" placeholder="you@example.com"/></div>
+        <div class="field"><label>Subject</label>
+          <select id="f-subject">
+            <option value="">Select a topic…</option>
+            <option>General Inquiry</option><option>Bug Report</option>
+            <option>Feature Request</option><option>Other</option>
+          </select>
+        </div>
+        <div class="field"><label>Message</label><textarea id="f-msg" placeholder="Write your message here…"></textarea></div>
+      </div>`,
+    footer: () => `<button class="mbtn mbtn-ghost" onclick="closeModal()">Cancel</button>
+                   <button class="mbtn mbtn-primary" onclick="submitForm()">Send Message →</button>`
+  },
+  alert: {
+    eyebrow: 'Action Required',
+    title: 'Confirm Deletion',
+    stripe: 'linear-gradient(90deg, #c0392b, #e74c3c)',
+    content: () => `
+      <div class="alert-banner">
+        <span class="a-icon">🗑️</span>
+        <p>You are about to <strong>permanently delete</strong> this record. This action cannot be undone and all associated data will be removed immediately.</p>
+      </div>
+      <p>Please confirm that you understand the consequences before proceeding.</p>
+      <div class="badge-row">
+        <span class="badge red">Irreversible</span>
+        <span class="badge red">SV-01 ✓</span>
+        <span class="badge red">TC-07 ✓</span>
+      </div>`,
+    footer: () => `<button class="mbtn mbtn-ghost" onclick="closeModal()">Cancel — Keep it</button>
+                   <button class="mbtn mbtn-danger" onclick="closeModal()">Yes, Delete</button>`
+  }
+};
+
+let isOpen = false;
+const overlay  = document.getElementById('modal-overlay');
+const stripe   = document.getElementById('modal-stripe');
+const eyebrow  = document.getElementById('modal-eyebrow');
+const titleEl  = document.getElementById('modal-title');
+const content  = document.getElementById('modal-content');
+const footer   = document.getElementById('modal-footer');
+const closeBtn = document.getElementById('modal-close');
+
+function openModal(type) {
+  if (isOpen) return;
+  const m = MODALS[type] || MODALS.info;
+  eyebrow.textContent = m.eyebrow;
+  titleEl.textContent = m.title;
+  stripe.style.background = m.stripe;
+  content.innerHTML = m.content();
+  footer.innerHTML  = m.footer();
+  overlay.classList.add('active');
+  isOpen = true;
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => closeBtn.focus(), 300);
+}
+
+function closeModal() {
+  if (!isOpen) return;
+  overlay.classList.remove('active');
+  isOpen = false;
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && isOpen) closeModal(); });
+overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+closeBtn?.addEventListener('click', closeModal);
+
+function submitForm() {
+  const first   = document.getElementById('f-first')?.value.trim();
+  const email   = document.getElementById('f-email')?.value.trim();
+  const subject = document.getElementById('f-subject')?.value;
+
+  const markError = id => {
+    const el = document.getElementById(id);
+    if (el) { el.style.borderColor='#c0392b'; el.style.boxShadow='0 0 0 3px rgba(192,57,43,0.12)'; el.focus(); }
+  };
+
+  if (!first)                        { markError('f-first'); return; }
+  if (!email || !email.includes('@')) { markError('f-email'); return; }
+  if (!subject)                      { markError('f-subject'); return; }
+
+  const safe = first.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const safeEmail = email.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  content.innerHTML = `
+    <div class="success-state">
+      <div class="success-icon">✓</div>
+      <h3>Message Sent!</h3>
+      <p>Thanks, <strong>${safe}</strong>.<br/>We'll reply to <strong>${safeEmail}</strong> soon.</p>
+    </div>`;
+  footer.innerHTML = `<button class="mbtn mbtn-gold" onclick="closeModal()">Close ✓</button>`;
+}
+</script>
+</body>
+</html>
